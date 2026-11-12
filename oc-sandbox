@@ -27,6 +27,9 @@ exec docker run --rm -it \
   --cap-drop ALL \
   --security-opt no-new-privileges \
   -e HOME=/home/oc \
+  -e TERM="${TERM:-xterm-256color}" \
+  -e COLORTERM="${COLORTERM:-truecolor}" \
+  -e LANG=C.UTF-8 \
   -e GIT_OPTIONAL_LOCKS=0 \
   -e GIT_CONFIG_COUNT=1 \
   -e GIT_CONFIG_KEY_0=safe.directory \

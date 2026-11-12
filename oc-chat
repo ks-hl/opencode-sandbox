@@ -14,6 +14,9 @@ exec docker run --rm -it \
   --cap-drop ALL \
   --security-opt no-new-privileges \
   -e HOME=/home/oc \
+  -e TERM="${TERM:-xterm-256color}" \
+  -e COLORTERM="${COLORTERM:-truecolor}" \
+  -e LANG=C.UTF-8 \
   -v "$OC_HOME/config":/home/oc/.config/opencode \
   -v "$OC_HOME/empty.md":/home/oc/.config/opencode/AGENTS.md:ro \
   -v "$OC_HOME/share":/home/oc/.local/share/opencode \
