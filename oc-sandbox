@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Usage (from inside your repo):  oc-sandbox <branch> [opencode args...]
+# Creates/reuses a sibling worktree on <branch> and runs OpenCode in Docker with
+# only that worktree writable. All git metadata is mounted read-only.
+set -euo pipefail
+
+BRANCH="${1:?usage: oc-sandbox <branch> [opencode args...]}"; shift
+
+MAIN="$(git rev-parse --show-toplevel)"
+GIT_COMMON="$(git -C "$MAIN" rev-parse --path-format=absolute --git-common-dir)"
+WT="$(dirname "$MAIN")/$(basename "$MAIN")-${BRANCH//\//-}"
+
+if [ ! -e "$WT" ]; then
+  if git -C "$MAIN" show-ref --verify --quiet "refs/heads/$BRANCH"; then
+    git -C "$MAIN" worktree add "$WT" "$BRANCH"
+  else
+    git -C "$MAIN" worktree add "$WT" -b "$BRANCH"
+  fi
+fi
+
+# OpenCode config, login, sessions and cache live here, separate from any host install.
+OC_HOME="$HOME/.opencode-docker"
+mkdir -p "$OC_HOME"/{config,share,state,cache}
+
+exec docker run --rm -it \
+  --user "$(id -u):$(id -g)" \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  -e HOME=/home/oc \
+  -e GIT_OPTIONAL_LOCKS=0 \
+  -e GIT_CONFIG_COUNT=1 \
+  -e GIT_CONFIG_KEY_0=safe.directory \
+  -e GIT_CONFIG_VALUE_0='*' \
+  -v "$OC_HOME/config":/home/oc/.config/opencode \
+  -v "$OC_HOME/share":/home/oc/.local/share/opencode \
+  -v "$OC_HOME/state":/home/oc/.local/state/opencode \
+  -v "$OC_HOME/cache":/home/oc/.cache/opencode \
+  -v "$WT":"$WT" \
+  -v "$WT/.git":"$WT/.git":ro \
+  -v "$GIT_COMMON":"$GIT_COMMON":ro \
+  -w "$WT" \
+  opencode-sandbox opencode "$@"
